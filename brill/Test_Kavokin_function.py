@@ -17,13 +17,14 @@ A_1h = np.linspace(2, 20, 10)
 A_2h = np.linspace(2, 20, 5)
 a_e = np.array([6])
 mu = 58e-3
-delta_hh = 0# np.linspace(0.00, 2, 10) # расщепление между дырками
+delta_hh = 5#np.linspace(0.00, 2, 10) # расщепление между дырками
 data_Int1 = np.zeros((len(A_1h), 4))
 data_Int2 = np.zeros(len(A_1h))
 data_Bex = np.zeros(len(A_1h))
 data_delta_B = np.zeros(len(A_1h))
 data_B_ex_A1 = np.zeros(len(A_1h))
 data_B_ex_A2 = np.zeros(len(A_1h))
+data_sin_phi = np.zeros(len(A_1h))
 # функции и интегралы
 #cos2 = lambda z: (np.cos(np.pi/Qw*z))**2
 def Integrate_fun(A_1h, A_2h):
@@ -73,6 +74,7 @@ for j in range(len(A_2h)):
         #B_ex = Const_1 * np.sqrt((Const_2 * Int_1)**2 - 4*delta_hh**2) / (Const_2 * Int_1) * Int_2
         B_ex2 = Alfa/Beta * np.sqrt((Const_2 * data_Int1[:, 0])**2 - 4*delta_hh**2) / (data_Int1[:, 0]) * data_Int1[:, 1]
         # B_ex2 = Const_1 * data_Int1[:, 1]
+        sin_phi = np.sqrt((Beta**2 * N_0 * S*(S+1)/(6*k*T) * data_Int1[:, 0])**2 - 4*delta_hh**2) / (Beta**2 * N_0 * S*(S+1)/(6*k*T)  * data_Int1[:, 0])
         B_ex_A1 = Beta / N_0 * 3 / 2 / (3 * mu * 2 * data_Int1[:, 2])
         B_ex_A2 = Beta / N_0 * 3 / 2 / (3 * mu * 2 * data_Int1[:, 3])
         delta_B = abs(B_ex_A2 - B_ex_A1)
@@ -82,11 +84,13 @@ for j in range(len(A_2h)):
                 data_delta_B = delta_B
                 data_B_ex_A1 = B_ex_A1
                 data_B_ex_A2 = B_ex_A2
+                data_sin_phi = sin_phi
         else:
                 data_Bex = np.column_stack((data_Bex, B_ex2))
                 data_delta_B = np.column_stack((data_delta_B, delta_B))
                 data_B_ex_A1 = np.column_stack((data_B_ex_A1, B_ex_A1))
                 data_B_ex_A2 = np.column_stack((data_B_ex_A2, B_ex_A2))
+                data_sin_phi = np.column_stack((data_sin_phi, sin_phi))
 
 print(data_Bex)
 np.savetxt("data_from_Kavokin_function.txt", np.column_stack((A_1h, data_Bex)),fmt='%10.8f',
@@ -117,5 +121,11 @@ plt.plot(A_1h, data_B_ex_A1)
 plt.figure(4)
 plt.plot(A_2h, np.transpose(data_B_ex_A2))
 
-
+plt.figure(5)
+for i in range(len(A_2h)):
+        plt.plot(A_1h, data_sin_phi[:, i], label= np.transpose(A_2h[i]) )
+plt.ylim(0, 2)
+plt.ylabel('Sin(phi)')
+plt.xlabel('Hole_radius(nm)')
+plt.title("Sin(phi) for delta_hh = 1 meV")
 plt.show()
