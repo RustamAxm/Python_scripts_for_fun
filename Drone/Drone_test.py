@@ -56,6 +56,7 @@ if __name__ == "__main__":
     print(dji.takeoff())
     dji.rotate(360)
     dji.forward(30)
+    print(dji.telemetry())
     dji.backward(40)
     print(dji.land())
     print("Test_success")
