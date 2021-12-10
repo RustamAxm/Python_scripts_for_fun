@@ -1,0 +1,131 @@
+"""
+Created on Fri Sep 19 18:11:40 2014
+
+@author: Bala Krishna Juluri
+"""
+
+from visa import *
+import time
+#assumes connected with USB. Drivers are installed. Needs pyvisa for communication.
+# There is no need to use visa write command for SP2150. because all commands are ask type (you write something and get a confirmation back saying OK)
+# filter 1 is no filter
+# filter 2 is in 320 nm long pass filter
+# filter 3 is 590 long pass filter cutoff
+# filter 4 is 715 long pass filter
+# filter 5 is 1250 long pass filter
+#filter 6 is block
+
+class SP2150i():
+    def __init__(self):
+        #self.m=instrument(get_instruments_list()[0])
+        try:
+            print get_instruments_list()
+            self.m=instrument('COM7', timeout = 10) #he default timeout is 5 sec, change the timeout if needed
+        except:
+            print "Check if monochromotor is connected to right COM port of instrument list (see control panel, hardward devices). Cannot connect to monochromator. Check connection. Check drivers"
+
+    def get_nm(self):
+        self.curr_nm=self.m.ask_for_values('?NM')
+        return self.curr_nm
+
+    def get_nm_per_min(self):
+        self.curr_nm_min=self.m.ask_for_values('?NM/MIN')
+        return self.curr_nm_min
+
+    def get_serial_model(self):
+        self.serial_no=self.m.ask_for_values('SERIAL')
+        self.model_no=self.m.ask_for_values('MODEL')
+        return self.serial_no,self.model_no
+
+    def goto_nm_max_speed(self,nm):
+        self.m.ask('%0.2f GOTO' % nm)
+
+    def get_turret(self):
+        self.turret=self.m.ask_for_values('?TURRET')
+        return self.turret
+
+    def get_filter(self):
+        self.filter=self.m.ask_for_values('?FILTER')
+        time.sleep(2)
+        return self.filter
+
+    def get_grating(self):
+        self.grating=self.m.ask_for_values('?GRATING')
+        return self.grating
+
+    def set_turret(self,num):
+        if num <=2:
+            self.m.ask(str(int(num))+ ' TURRET')
+        else:
+            print "There is not turret with this input"
+
+    def set_filter(self,num):
+        if num <=6:
+            self.m.ask(str(int(num))+ ' FILTER')
+            print "Filter changed and waiting with additional delay..."
+            time.sleep(1) # Additional delay, just in case.
+            print "Done waiting"
+        else:
+            print "There is no filter with this input"
+
+    def set_grating(self,num):
+        if num<=2:
+            self.m.ask(str(int(num))+ ' GRATING')
+            #time.sleep(5) # Additional delay, just in case
+        else:
+            print "There is no grating with this input"
+
+
+    def goto_nm_with_set_nm_per_min(self,nm,nm_per_min):
+       self.m.ask('%0.2f NM/MIN' % nm_per_min)
+       self.m.ask('%0.2f >NM' % nm)
+       char=0
+       while char!=1:
+           s=self.m.ask('MONO-?DONE')
+           char=int(s[2])
+           #print "Current wavelength is "+ self.m.ask('?NM')
+           time.sleep(.2)
+       print "Scan done?: "+'yes' if char == 1 else 'No'
+       self.m.ask('MONO-STOP')
+       return self.m.ask_for_values('?NM')
+
+if __name__ == "__main__":
+    #This part of the codes uses the SP2150i class to do a wavelength scan
+    a=SP2150i()
+    print a.get_serial_model()
+    print a.get_grating()
+    print a.get_filter()
+    print a.get_nm_per_min()
+    print a.get_nm()
+    a.set_grating(2) # can only take 1 or 2 as input
+
+    start_wave=500
+    end_wave=1000
+    delta_wave=20
+    speed_nm_per_min=2000
+    a.set_filter(2) # this applies the 320 nm filter in the beginning
+    for i in xrange(start_wave,end_wave,delta_wave):
+        print "----------------------------"
+        print "Wavelength input is %0.2f nm" % i
+        wave=a.goto_nm_with_set_nm_per_min(i,speed_nm_per_min)
+
+        if i <= 370 and i+delta_wave >= 370:
+            a.set_filter(2)
+
+        if i <= 660 and i+delta_wave >= 660:
+            a.set_filter(3)
+
+        if i <= 775 and i+delta_wave >= 775:
+            a.set_filter(4)
+
+        if i <= 1300 and i+delta_wave >= 1300:
+            a.set_filter(5)
+
+        print "Wavelength output is "+str(wave[0])+ " nm"
+        print "----------------------------"
+
+    print "Resetting the monochromator to home position"
+    a.goto_nm_max_speed(400)
+    a.set_filter(1)
+    print "Position to home at  " + str(a.get_nm()[0]) + " nm"+ ' and filter has been reset to ' + str(a.get_filter()[0])
+    print "Monochromator scan done. Have a nice day!"

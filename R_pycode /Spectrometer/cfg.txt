@@ -1,0 +1,6 @@
+stage1_offset = 39.06
+stage2_offset = -24.25
+stage3_offset = -16.15
+init_wavelength = 483.50
+init_num_of_frames = 1
+init_accum_time = 1000
